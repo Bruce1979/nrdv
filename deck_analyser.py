@@ -15,6 +15,9 @@ EXPORT_DECKS = False
 
 UPDATE_COLLECTION = False
 
+FIND_COMBINATIONS = True
+SHUFFLE_DECKS = True    # Should only be set to False if known
+
 CORP = True
 MAX_DECKS_PER_CORP = 6
 NUM_CORP_ITERATIONS = 10
@@ -37,9 +40,82 @@ RUNNER_INCLUDED = {
   'sunny-lebeau' : False,
 }
 
-SHUFFLE_DECKS = True    # Should only be set to False if known
+# pack_code: (netrunnerdb_search_string_id, qty)
+packs = {
+  'core'  : ('1', 2),   # core set
+  'wla'   : ('2', 1),   # what lies ahead
+  'ta'    : ('3', 1),   # trace amount
+  'ce'    : ('4', 0),   # cyber exodus
+  'asis'  : ('5', 1),   # a study in static
+  'hs'    : ('6', 0),   # humanity's shadow
+  'fp'    : ('7', 0),   # future proof
+  'cac'   : ('8', 1),   # creation and control
+  'om'    : ('9', 0),   # opening moves
+  'st'    : ('10', 0),  # second thoughts
+  'mt'    : ('11', 0),  # mala tempora
+  'tc'    : ('12', 0),  # true colors
+  'dt'    : ('18', 1),  # double time
+  'fal'   : ('19', 1),  # fear and loathing
+  'draft' : ('20', 0),  # draft
+  'hap'   : ('21', 1),  # honor and profit
+  'up'    : ('22', 0),  # upstalk
+  'tsb'   : ('23', 1),  # the spaces between
+  'fc'    : ('24', 0),  # first contact
+  'uao'   : ('25', 0),  # up and over
+  'atr'   : ('26', 0),  # all that remains
+  'ts'    : ('27', 0),  # the source
+  'oac'   : ('28', 1),  # order and chaos
+  'val'   : ('29', 1),  # the valley
+  'bb'    : ('30', 1),  # breaker bay
+  'cc'    : ('31', 0),  # chrome city
+  'uw'    : ('32', 1),  # the underway
+  'oh'    : ('33', 0),  # old hollywood
+  'uot'   : ('34', 0),  # the universe of tomorrow
+  'dad'   : ('35', 1),  # data and destiny
+  'kg'    : ('36', 0),  # kala ghoda
+  'bf'    : ('37', 1),  # business first
+  'dag'   : ('38', 0),  # democracy and dogma
+  'si'    : ('39', 0),  # salsette island
+  'tlm'   : ('40', 0),  # the liberated mind
+  'ftm'   : ('41', 0),  # fear the masses
+  '23s'   : ('42', 1),  # 23 seconds
+  'em'    : ('43', 1),  # blood money
+  'es'    : ('44', 1),  # escalation
+  'in'    : ('45', 1),  # intervention
+  'ml'    : ('46', 0),  # martial law
+  'qu'    : ('47', 0),  # quorum
+  'dc'    : ('48', 0),  # daedalus complex
+  'so'    : ('49', 0),  # station one
+  'eas'   : ('50', 1),  # earth's scion
+  'td'    : ('51', 1),  # terminal directive
+  'baw'   : ('52', 1),  # blood and water
+  'fm'    : ('53', 0),  # free mars
+  'cd'    : ('54', 1),  # crimson dust
+  'core2' : ('55', 1),  # revised core set
+  'fm'    : ('56', 0),  # sovereign sight
+  'dtwn'  : ('57', 1),  # down the white nile
+  'cotc'  : ('58', 1),  # council of the crest
+  'tdatd' : ('59', 1),  # the devil and the dragon
+  'win'   : ('60', 0),  # whispers in nalubaale
+  'ka'    : ('61', 1)   # kampala ascendant
+  'rar'   : ('62', 1),  # reign and reverie
+  'mo'    : ('63', 0),  # magnum opus
+  'napd'  : ('64', 0),  # NAPD multiplayer
+  'sc19'  : ('65', 0),  # system core 19
+  'df'    : ('67', 0),  # downfall
+  'ur'    : ('68', 0),  # uprising
+  'urbp'  : ('69', 0),  # uprising booster pack
+  'mor'   : ('80', 0),  # magnum opus reprint
+}
 
-FIND_COMBINATIONS = False
+extra_cards = {
+  '06095' : 1,
+}
+
+# other purchases made - not included in search parameters
+# 2015 world championships HB engineering the future
+# 2015 world championships valencia (anarch)
+
 
 class MyDeckParser(HTMLParser):
 
@@ -165,7 +241,7 @@ def construct_collection(cards_filename, collection_filename, packs, extra_cards
         else:
           collection_ids = (cards[card]['code'],)
         if pack_code in packs:
-          collection[collection_ids] = collection.get(collection_ids, 0) + (cards[card]['quantity'] * packs[pack_code])
+          collection[collection_ids] = collection.get(collection_ids, 0) + (cards[card]['quantity'] * packs[pack_code][1])
         else:
           collection[collection_ids] = collection.get(collection_ids, 0) + extra_cards[card]
 
@@ -221,12 +297,20 @@ def check_combination(cards, deck_combination, collection):
       card_code = card_ids[0]
       all_cards[card_code] = all_cards.get(card_code,0) + quantity
   for card in all_cards:
-    missing_qty = all_cards[card] - collection[card]
+    if card not in collection:
+      missing_qty = all_cards[card]
+    else:
+      missing_qty = all_cards[card] - collection[card]
     if missing_qty > 0:
       missing_cards[card] = missing_qty
   return missing_cards
 
 if SEARCH:
+
+  headers = {
+    'User-Agent' : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/11.1.2 Safari/605.1.15',
+    'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+  }
 
   # Search data
   payloads = [
@@ -238,38 +322,21 @@ if SEARCH:
       'title' : '',
       'is_legal' : '',
       'mwl_code' : '',
-      'packs[]' : ['1', '8', '21', '28', '35', '55', '62'],
-    },
-    {
-      'faction' : '',
-      'sort' : 'popularity',
-      'rotation_id' : '',
-      'author' : 'filk',
-      'title' : '',
-      'is_legal' : '',
-      'mwl_code' : '',
-      'packs[]' : ['1', '8', '21', '28', '35', '55', '62'],
+      'packs[]' : [packs[p][0] for p in packs],
     }
   ]
 
-  headers = {
-    'User-Agent' : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/11.1.2 Safari/605.1.15',
-    'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-  }
-
-  packs = {
-    'core': 2,    # core set
-    'cac' : 1,    # creation and control
-    'hap' : 1,    # honor and profit
-    'oac' : 1,    # order and chaos
-    'dad' : 1,    # data and destiny
-    'core2' : 1,  # revised core set
-    'rar' : 1,    # reign and reverie
-  }
-
-  extra_cards = {
-    '06095' : 1,
-  }
+# old payload for big boxes only
+#    {
+#      'faction' : '',
+#      'sort' : 'popularity',
+#      'rotation_id' : '',
+#      'author' : 'filk',
+#      'title' : '',
+#      'is_legal' : '',
+#      'mwl_code' : '',
+#      'packs[]' : ['1', '8', '21', '28', '35', '51, '55', '62'],
+#    }
 
   # Grab all card info json
   cards_file = write_cards('cards.json', headers)
