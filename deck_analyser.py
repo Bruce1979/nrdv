@@ -92,7 +92,7 @@ packs = {
   'fm'    : ('53', 0),  # free mars
   'cd'    : ('54', 1),  # crimson dust
   'core2' : ('55', 1),  # revised core set
-  'fm'    : ('56', 0),  # sovereign sight
+  'ss'    : ('56', 0),  # sovereign sight
   'dtwn'  : ('57', 1),  # down the white nile
   'cotc'  : ('58', 1),  # council of the crest
   'tdatd' : ('59', 1),  # the devil and the dragon
